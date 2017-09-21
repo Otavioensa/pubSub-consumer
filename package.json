@@ -1,0 +1,24 @@
+{
+  "name": "pubsub-case",
+  "version": "1.0.0",
+  "description": "Project made for being presented as a POC",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Otavioensa/pubSub-case.git"
+  },
+  "author": " <otavioensa@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Otavioensa/pubSub-case/issues"
+  },
+  "homepage": "https://github.com/Otavioensa/pubSub-case#readme",
+  "dependencies": {
+    "amqplib": "^0.5.1",
+    "bluebird": "^3.5.0",
+    "request-promise": "^4.2.1"
+  }
+}
