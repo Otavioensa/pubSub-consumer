@@ -12,20 +12,23 @@ const listen = (queues) => {
 
   return amqp.connect(address)
     .then((connection) => connection.createChannel())
-    .then((channel) => Promise.map(queues, (queue) => setConsumers(channel, queue)))
+    .then((channel) => promise.map(queues, (queue) => setConsumers(channel, queue)))
 };
 
-const setConsumers = (channel, queue) => {
+const setConsumers = (channel, data) => {
 
-  const queueName = queue.queue;
-  const topic = queue.topic;
-  const uri = queue.endpoint;
-  const assertExchangeOptions = { durable: true };
+  const exchange = config.rabbit.exchange;
+  const subject = data.subject;
+  const uri = data.endpoint;
+
+  const assertExchangeOptions = { durable: false };
   const assertQueueOptions = { exclusive: false };
 
   const sendToSubscriber = (msg) => {
 
     const parsedMsg = JSON.parse(msg.content.toString());
+    console.log(parsedMsg);
+
     const payload = {
       url: uri,
       method: 'POST',
@@ -33,30 +36,37 @@ const setConsumers = (channel, queue) => {
     };
 
     return request(payload)
-      .then(() => channel.ack(msg))
+      .then((result) => {
+        console.log(result);
+        return channel.ack(msg);
+      })
       .catch(() => channel.reject(msg, false))
   };
 
-  return channel.assertExchange(topic, 'fanout', assertExchangeOptions)
-    .then(() => channel.assertQueue(queueName, assertQueueOptions))
-    .then((queueOk) => channel.bindQueue(queueOk.queue, topic, '').then(() => queueOk.queue))
+  return channel.assertExchange(exchange, 'direct', assertExchangeOptions)
+    .then(() => channel.assertQueue(subject, assertQueueOptions))
+    .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, queueOk.queue).then(() => queueOk.queue))
     .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: false }));
 };
 
-const receiveNewQueues = () => {
+module.exports.receiveNewQueues = () => {
 
+  const exchange = config.rabbit.exchange;
   const address = config.rabbit.address;
-  const newSubscribersQueue = config.rabbit.newSubscribersQueue;
-  const consumerOptions = { noAck: false };
+  const newSubscribers = config.rabbit.newSubscribersQueue;
+
+  const consumerOptions = { noAck: true };
+  const assertExchangeOptions = { durable: false };
+  const assertQueueOptions = { exclusive: false };
 
   const sendForListeningQueue = (msg) => {
 
     const parsedMsg = JSON.parse(msg.content.toString());
 
+    console.log(parsedMsg);
     const queueForListening = [{
-      queue: parsedMsg.queueName,
-      topic: parsedMsg.topic,
-      endpoint: parsedMsg.endpoint;
+      subject: parsedMsg.subject,
+      endpoint: parsedMsg.endpoint
     }];
 
     return listen(queueForListening);
@@ -64,11 +74,10 @@ const receiveNewQueues = () => {
 
   return amqp.connect(address)
     .then((connection) => connection.createChannel())
-    .then((channel) => channel.assertQueue(newSubscribersQueue))
-    .then((queueOk) => channel.consume(queueOk.queue, sendForListeningQueue, consumerOptions))
-};
-
-module.exports = {
-  listen: listen,
-  receiveNewQueues: receiveNewQueues
+    .then((channel) => {
+      return channel.assertExchange(exchange, 'direct', assertExchangeOptions)
+        .then(() => channel.assertQueue(newSubscribers, assertQueueOptions))
+        .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, newSubscribers).then((queueOk) => queueOk.queue))
+        .then(() => channel.consume(newSubscribers, sendForListeningQueue, consumerOptions))
+    });
 };
