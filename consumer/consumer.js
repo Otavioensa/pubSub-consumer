@@ -2,54 +2,50 @@
 
 const amqp = require('amqplib');
 const request = require('request-promise');
-const config = require('./config');
+const config = require('../config');
 const promise = require('bluebird');
 
-//TODO: Tratamento de erros
-const listen = (queues) => {
+const listen = (subscribers) => {
 
   const address = config.rabbit.address;
 
   return amqp.connect(address)
     .then((connection) => connection.createChannel())
-    .then((channel) => promise.map(queues, (queue) => setConsumers(channel, queue)))
+    .then((channel) => promise.map(subscribers, (subscriber) => setConsumers(channel, subscriber)))
 };
 
-const setConsumers = (channel, data) => {
+const setConsumers = (channel, subscriber) => {
 
   const exchange = config.rabbit.exchange;
-  const subject = data.subject;
-  const uri = data.endpoint;
-
+  const subject = subscriber.subject;
+  const uri = subscriber.endpoint || subscriber.subscriber;
   const assertExchangeOptions = { durable: false };
   const assertQueueOptions = { exclusive: false };
 
   const sendToSubscriber = (msg) => {
 
     const parsedMsg = JSON.parse(msg.content.toString());
-    console.log(parsedMsg);
 
     const payload = {
       url: uri,
       method: 'POST',
       json: parsedMsg
     };
-
+    console.log(payload);
     return request(payload)
-      .then((result) => {
-        console.log(result);
-        return channel.ack(msg);
-      })
-      .catch(() => channel.reject(msg, false))
+      .then((result) => console.log(result))
+//        return channel.ack(msg);
+  //    })
+      //.catch(() => channel.reject(msg, false))
   };
-
-  return channel.assertExchange(exchange, 'direct', assertExchangeOptions)
+  console.log(subscriber);
+  return channel.assertExchange(exchange, 'fanout', assertExchangeOptions)
     .then(() => channel.assertQueue(subject, assertQueueOptions))
     .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, queueOk.queue).then(() => queueOk.queue))
-    .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: false }));
+    .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: true }));
 };
 
-module.exports.receiveNewQueues = () => {
+const receiveNewQueues = () => {
 
   const exchange = config.rabbit.exchange;
   const address = config.rabbit.address;
@@ -63,21 +59,25 @@ module.exports.receiveNewQueues = () => {
 
     const parsedMsg = JSON.parse(msg.content.toString());
 
-    console.log(parsedMsg);
-    const queueForListening = [{
+    const subscriber = [{
       subject: parsedMsg.subject,
       endpoint: parsedMsg.endpoint
     }];
 
-    return listen(queueForListening);
+    console.log(subscriber);
+    return listen(subscriber);
   };
-
   return amqp.connect(address)
     .then((connection) => connection.createChannel())
     .then((channel) => {
-      return channel.assertExchange(exchange, 'direct', assertExchangeOptions)
+      return channel.assertExchange(exchange, 'fanout', assertExchangeOptions)
         .then(() => channel.assertQueue(newSubscribers, assertQueueOptions))
         .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, newSubscribers).then((queueOk) => queueOk.queue))
         .then(() => channel.consume(newSubscribers, sendForListeningQueue, consumerOptions))
     });
+};
+
+module.exports = {
+  receiveNewQueues: receiveNewQueues,
+  listen: listen
 };

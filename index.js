@@ -1,6 +1,7 @@
 'use strict';
 
+const database = require('./db');
 const consumer = require('./consumer');
-const promise = require('bluebird');
 
-return consumer.receiveNewQueues();
+return database.connect()
+  .then(() => consumer.start());

@@ -6,6 +6,13 @@ const rabbit = {
   exchange: process.env.exchange || 'ApplicationExchange'
 };
 
+const db = {
+  host: process.env.mongo_host || 'localhost',
+  port: process.env.mongo_port || '27017',
+  database: process.env.mongo_database || 'develop'
+};
+
 module.exports = {
-  rabbit: rabbit
+  rabbit: rabbit,
+  db: db
 };
