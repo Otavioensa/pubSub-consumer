@@ -32,21 +32,21 @@ const setConsumers = (channel, subscriber) => {
       json: parsedMsg
     };
 
-    console.log(payload);
-    console.log(subscriber);
-
     return request(payload)
-      .then((result) => console.log(result))
-      .catch((error) => console.log(error));
-//        return channel.ack(msg);
-  //    })
-      //.catch(() => channel.reject(msg, false))
+      .then((result) => {
+        console.log(result)
+        return channel.ack(msg);
+      })
+      .catch((error) => {
+        console.log(error.error);
+        return channel.reject(msg, false);
+      });
   };
 
   return channel.assertExchange(exchange, 'topic', assertExchangeOptions)
     .then(() => channel.assertQueue('', assertQueueOptions))
     .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, subject).then(() => queueOk.queue))
-    .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: true }));
+    .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: false }));
 };
 
 const receiveNewQueues = () => {
@@ -68,9 +68,9 @@ const receiveNewQueues = () => {
       endpoint: parsedMsg.endpoint
     }];
 
-    console.log(subscriber);
     return listen(subscriber);
   };
+
   return amqp.connect(address)
     .then((connection) => connection.createChannel())
     .then((channel) => {
