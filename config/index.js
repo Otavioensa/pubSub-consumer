@@ -3,7 +3,8 @@
 const rabbit = {
   address: process.env.rabbbitAddress || 'amqp://localhost',
   newSubscribersQueue: process.env.newSubscribersQueue || 'newSubscribersQueue',
-  exchange: process.env.exchange || 'ApplicationExchange'
+  exchange: process.env.exchange || 'ApplicationExchange',
+  consumerExchange: process.env.consumerExchange || 'ConsumerExchange'
 };
 
 const db = {

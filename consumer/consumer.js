@@ -16,7 +16,7 @@ const listen = (subscribers) => {
 
 const setConsumers = (channel, subscriber) => {
 
-  const exchange = config.rabbit.exchange;
+  const exchange = config.rabbit.consumerExchange;
   const subject = subscriber.subject;
   const uri = subscriber.endpoint || subscriber.subscriber;
   const assertExchangeOptions = { durable: false };
@@ -31,17 +31,21 @@ const setConsumers = (channel, subscriber) => {
       method: 'POST',
       json: parsedMsg
     };
+
     console.log(payload);
+    console.log(subscriber);
+
     return request(payload)
       .then((result) => console.log(result))
+      .catch((error) => console.log(error));
 //        return channel.ack(msg);
   //    })
       //.catch(() => channel.reject(msg, false))
   };
-  console.log(subscriber);
-  return channel.assertExchange(exchange, 'fanout', assertExchangeOptions)
-    .then(() => channel.assertQueue(subject, assertQueueOptions))
-    .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, queueOk.queue).then(() => queueOk.queue))
+
+  return channel.assertExchange(exchange, 'topic', assertExchangeOptions)
+    .then(() => channel.assertQueue('', assertQueueOptions))
+    .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, subject).then(() => queueOk.queue))
     .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: true }));
 };
 
