@@ -1,15 +1,15 @@
 'use strict';
 
-const Promise = require('bluebird');
-const Config = require('../config');
-const Mongoose = require('mongoose');
+const promise = require('bluebird');
+const config = require('../config');
+const mongoose = require('mongoose');
 
-Promise.promisifyAll(Mongoose);
-Mongoose.Promise = Promise;
+promise.promisifyAll(mongoose);
+mongoose.Promise = promise;
 
 const connect = () => {
 
-  const connectionString = `mongodb://${Config.db.host}:${Config.db.port}/${Config.db.database}`;
+  const connectionString = `mongodb://${config.db.host}:${config.db.port}/${config.db.database}`;
   const options = {
     useMongoClient: true,
     poolSize: 5,
@@ -17,10 +17,10 @@ const connect = () => {
     keepAlive: 1000
   };
 
-  return Mongoose.connect(connectionString, options)
+  return mongoose.connect(connectionString, options)
 };
 
-const disconnect = () => Mongoose.disconnect();
+const disconnect = () => mongoose.disconnect();
 
 module.exports = {
   connect: connect,

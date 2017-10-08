@@ -2,7 +2,7 @@
 
 const consumer = require('./consumer');
 const promise = require('bluebird');
-const subscriberModel = require('./models/subscriberModel');
+const subscriberModel = require('../models/subscriberModel');
 
 module.exports.start = () => {
 
