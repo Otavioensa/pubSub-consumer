@@ -20,7 +20,7 @@ const setConsumers = (channel, subscriber) => {
   const subject = subscriber.subject;
   const uri = subscriber.endpoint || subscriber.subscriber;
   const assertExchangeOptions = { durable: false };
-  const assertQueueOptions = { exclusive: false };
+  const assertQueueOptions = { exclusive: true };
 
   const sendToSubscriber = (msg) => {
 
@@ -43,7 +43,7 @@ const setConsumers = (channel, subscriber) => {
       });
   };
 
-  return channel.assertExchange(exchange, 'topic', assertExchangeOptions)
+  return channel.assertExchange(exchange, 'direct', assertExchangeOptions)
     .then(() => channel.assertQueue('', assertQueueOptions))
     .then((queueOk) => channel.bindQueue(queueOk.queue, exchange, subject).then(() => queueOk.queue))
     .then((queue) => channel.consume(queue, sendToSubscriber, { noAck: false }));
@@ -57,7 +57,7 @@ const receiveNewQueues = () => {
 
   const consumerOptions = { noAck: true };
   const assertExchangeOptions = { durable: false };
-  const assertQueueOptions = { exclusive: false };
+  const assertQueueOptions = { exclusive: true };
 
   const sendForListeningQueue = (msg) => {
 
